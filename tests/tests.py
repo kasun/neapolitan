@@ -4,7 +4,7 @@ from django.utils.html import escape
 
 from neapolitan.views import CRUDView
 
-from .models import Bookmark, Project
+from .models import Bookmark, BookmarkCollection, Project
 
 
 class BookmarkView(CRUDView):
@@ -21,7 +21,16 @@ class ProjectView(CRUDView):
     base_template = "custom_base.html"
 
 
-urlpatterns = [] + BookmarkView.get_urls() + ProjectView.get_urls()
+class BookmarkCollectionView(CRUDView):
+    model = BookmarkCollection
+    fields = ["name", "code"]
+
+    lookup_field = "code"
+    lookup_url_converter = "uuid"
+
+    mount_url = "dashboard/collections"
+
+urlpatterns = [] + BookmarkView.get_urls() + BookmarkCollectionView.get_urls() + ProjectView.get_urls()
 
 
 class BasicTests(TestCase):
@@ -42,6 +51,10 @@ class BasicTests(TestCase):
             url="https://fosstodon.org/@carlton",
             title="Carlton Gibson - Fosstodon",
             note="Carlton Gibson on Fosstodon",
+        )
+
+        cls.main_collection = BookmarkCollection.objects.create(
+            name="main"
         )
 
     def test_list(self):
@@ -134,3 +147,26 @@ class BasicTests(TestCase):
         response = self.client.get("/project/")
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "<title>Custom Base Template</title>")
+
+    def test_custom_mount_url(self):
+        """Test view.mount_url"""
+        response = self.client.get("/collection/")
+        self.assertEqual(response.status_code, 404)
+
+        response = self.client.get("/dashboard/collections/")
+        self.assertEqual(response.status_code, 200)
+
+    def test_custom_lookup_field(self):
+        """Test custom view.lookup_field"""
+        response = self.client.get(f"/dashboard/collections/{self.main_collection.code}/")
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, self.main_collection.name)
+
+    def test_lookup_url_converter(self):
+        """Test view.lookup_url_converter"""
+        response = self.client.get(f"/dashboard/collections/{self.main_collection.id}/")
+        self.assertEqual(response.status_code, 404)
+
+        response = self.client.get(f"/dashboard/collections/{self.main_collection.code}/")
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, self.main_collection.name)
