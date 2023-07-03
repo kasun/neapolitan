@@ -5,6 +5,7 @@ Neapolitan
 Customized version of Neapolitan with following features.
   * Ability to define base template.
   * Define mounting URLs of views.
+  * Define list page fields
 
 I have a Django model:
 
