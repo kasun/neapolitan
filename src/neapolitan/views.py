@@ -73,6 +73,7 @@ class CRUDView(View):
     role: Role
     model = None
     fields = None  # TODO: handle this being None.
+    list_fields = None
 
     # Object lookup parameters. These are used in the URL kwargs, and when
     # performing the model instance lookup.

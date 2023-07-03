@@ -1,5 +1,5 @@
 from django import template
-from django.core.exceptions import ImproperlyConfigured
+from django.core.exceptions import FieldDoesNotExist, ImproperlyConfigured
 from django.urls import reverse
 from django.utils.safestring import mark_safe
 
@@ -56,17 +56,36 @@ def object_list(objects, view):
     with links to view, edit, and delete views.
     """
 
-    headers = [objects[0]._meta.get_field(f).verbose_name for f in view.fields]
-    object_list = [
-        {
+    fields = view.list_fields or view.fields or ["pk"]
+    headers = []
+    for field in fields:
+        try:
+            header = objects[0]._meta.get_field(field).verbose_name
+        except FieldDoesNotExist:
+            header = " ".join(field.split("_")).capitalize()
+
+        headers.append(header)
+
+    object_list = []
+    for object in objects:
+        field_values = []
+        for field in fields:
+            try:
+                field_value = object._meta.get_field(field).value_to_string(object)
+            except FieldDoesNotExist:
+                try:
+                    field_value = getattr(object, field)
+                except AttributeError:
+                    raise FieldDoesNotExist(f"Field {field} does not exist")
+
+            field_values.append(field_value)
+
+        object_list.append({
             "object": object,
-            "fields": [
-                object._meta.get_field(f).value_to_string(object) for f in view.fields
-            ],
+            "fields": field_values,
             "actions": action_links(object, view.lookup_field),
-        }
-        for object in objects
-    ]
+        })
+
     return {
         "headers": headers,
         "object_list": object_list,
