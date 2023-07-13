@@ -322,6 +322,7 @@ class CRUDView(View):
                 page_obj=None,
                 is_paginated=False,
                 paginator=None,
+                filter=filterset,
             )
         else:
             # Paginated response
@@ -331,6 +332,7 @@ class CRUDView(View):
                 page_obj=page,
                 is_paginated=page.has_other_pages(),
                 paginator=page.paginator,
+                filter=filterset,
             )
 
         return self.render_to_response(context)
